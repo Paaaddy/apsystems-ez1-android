@@ -2,7 +2,7 @@
 
 [![Build & Test](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/build.yml/badge.svg)](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/build.yml)
 
-Android app for monitoring APsystems EZ1 microinverters on your local network.
+Android app for monitoring APsystems EZ1 microinverters on your local network. Requires no cloud — communicates directly over LAN.
 
 ## Features
 
