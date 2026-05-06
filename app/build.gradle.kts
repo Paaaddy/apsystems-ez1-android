@@ -12,7 +12,7 @@ android {
         applicationId = "com.apsystems.ez1monitor"
         minSdk = 26
         targetSdk = 35
-        val vName = "1.0.0" // x-release-please-version
+        val vName = "1.1.0" // x-release-please-version
         versionName = vName
         // Derive from ANDROID_VERSION_CODE env (set in CI release.yml), or from versionName for local builds.
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull()
