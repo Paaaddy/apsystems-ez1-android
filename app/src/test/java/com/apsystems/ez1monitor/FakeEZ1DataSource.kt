@@ -17,7 +17,7 @@ val testDeviceInfo = DeviceInfo(
 )
 val testAlarmInfo = AlarmInfo(offGrid = false, shortCircuit1 = false, shortCircuit2 = false, outputFault = false)
 
-class FakeEZ1DataSource : EZ1DataSource {
+open class FakeEZ1DataSource : EZ1DataSource {
 
     val outputDataResults = ArrayDeque<EZ1Result<OutputData>>()
     val deviceInfoResults = ArrayDeque<EZ1Result<DeviceInfo>>()

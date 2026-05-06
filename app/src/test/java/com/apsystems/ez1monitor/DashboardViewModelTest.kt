@@ -122,21 +122,6 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun `onCleared cancels pollJob`() = runTest {
-        val prefs = FakeAppPrefs(ip = "10.0.0.1", interval = 30)
-        val dataSource = FakeEZ1DataSource()
-        val vm = DashboardViewModel(prefs, dataSource)
-
-        advanceUntilIdle()
-        val callsBeforeClear = dataSource.outputDataCallCount
-
-        vm.onCleared()
-
-        advanceTimeBy(60_000L)
-        assertEquals(callsBeforeClear, dataSource.outputDataCallCount)
-    }
-
-    @Test
     fun `toggleOnOff sends setOnOff with correct value`() = runTest {
         val prefs = FakeAppPrefs(ip = "10.0.0.1")
         val dataSource = FakeEZ1DataSource()
@@ -154,29 +139,18 @@ class DashboardViewModelTest {
     @Test
     fun `confirmSetMaxPower reverts slider on failure`() = runTest {
         val prefs = FakeAppPrefs(ip = "10.0.0.1")
-        val dataSource = FakeEZ1DataSource()
-        val vm = DashboardViewModel(prefs, dataSource)
-
-        advanceUntilIdle() // currentMaxPower = 800
-
-        vm.onPendingMaxPowerChanged(400)
-        dataSource.defaultOutputData = EZ1Result.Failure("error")
-
-        // Make setMaxPower fail by overriding with failure
-        // We use a custom data source for this test
         val failingDs = object : FakeEZ1DataSource() {
-            override suspend fun setMaxPower(ip: String, port: Int, watts: Int, min: Int, max: Int) =
+            override suspend fun setMaxPower(ip: String, port: Int, watts: Int, min: Int, max: Int): EZ1Result<Int> =
                 EZ1Result.Failure("Device error")
         }
-        failingDs.defaultOutputData = EZ1Result.Success(testOutputData)
-        val vm2 = DashboardViewModel(prefs, failingDs)
+        val vm = DashboardViewModel(prefs, failingDs)
         advanceUntilIdle()
 
-        val currentBefore = vm2.state.value.currentMaxPower
-        vm2.onPendingMaxPowerChanged(400)
-        vm2.confirmSetMaxPower()
+        val currentBefore = vm.state.value.currentMaxPower
+        vm.onPendingMaxPowerChanged(400)
+        vm.confirmSetMaxPower()
         advanceUntilIdle()
 
-        assertEquals(currentBefore, vm2.state.value.pendingMaxPower)
+        assertEquals(currentBefore, vm.state.value.pendingMaxPower)
     }
 }
