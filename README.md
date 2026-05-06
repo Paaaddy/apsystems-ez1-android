@@ -30,13 +30,29 @@ Android app for monitoring APsystems EZ1 microinverters on your local network. R
 ```
 <!-- /AUTO-GENERATED -->
 
-## Releases
+## Getting updates
 
 Download APKs from [GitHub Releases](https://github.com/Paaaddy/apsystems-ez1-android/releases).
 
-Each release includes a signed APK named `ez1-monitor-ez1-monitor-vX.Y.Z.apk`.
+Each release includes a signed APK named `ez1-monitor-vX.Y.Z.apk`.
 
-If signing secrets are not configured, the CI falls back to a debug-signed APK.
+### Obtainium (recommended for auto-updates)
+
+[Obtainium](https://github.com/ImranR98/Obtainium) auto-updates sideloaded apps from GitHub releases.
+
+**Quick setup:** Import this repo directly in Obtainium:
+- Source URL: `https://github.com/Paaaddy/apsystems-ez1-android`
+- Asset regex: `ez1-monitor-v.*\.apk`
+
+Or import via the `obtainium.json` config file at the root of this repo.
+
+### Manual updates
+
+1. Download the latest APK from [Releases](https://github.com/Paaaddy/apsystems-ez1-android/releases)
+2. Open the APK on your device — Android will offer to update the existing install
+3. No uninstall needed (signing key is stable across releases)
+
+> **Note:** If you installed a very early release (before v1.1.0) and the update fails with a signature error, uninstall first. After that, all future updates install over the top.
 
 ## Contributing
 

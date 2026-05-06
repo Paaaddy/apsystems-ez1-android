@@ -12,8 +12,13 @@ android {
         applicationId = "com.apsystems.ez1monitor"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0" // x-release-please-version
+        val vName = "1.0.0" // x-release-please-version
+        versionName = vName
+        // Derive from ANDROID_VERSION_CODE env (set in CI release.yml), or from versionName for local builds.
+        versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull()
+            ?: vName.split(".").map { it.toIntOrNull() ?: 0 }.let { p ->
+                if (p.size == 3) p[0] * 1_000_000 + p[1] * 1_000 + p[2] else 1
+            }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

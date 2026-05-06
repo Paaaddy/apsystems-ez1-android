@@ -1,0 +1,12 @@
+{
+  "id": "com.apsystems.ez1monitor",
+  "url": "https://github.com/Paaaddy/apsystems-ez1-android",
+  "author": "Paaaddy",
+  "name": "APsystems EZ1 Monitor",
+  "installedVersion": null,
+  "latestVersion": null,
+  "latestVersionCode": null,
+  "apkUrls": [],
+  "apkNumeric": false,
+  "additionalSettings": "{\"includePrereleases\":false,\"fallbackToOlderReleases\":true,\"filterReleaseTitlesByRegEx\":\"\",\"filterReleaseNotesByRegEx\":\"\",\"verifyLatestTag\":false,\"dontSortReleasesList\":false,\"useLatestAssetUrl\":false,\"releaseTitleAsVersion\":false,\"assetRegEx\":\"ez1-monitor-v.*\\\\.apk\"}"
+}

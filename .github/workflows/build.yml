@@ -35,10 +35,15 @@ jobs:
           java-version: '17'
           distribution: temurin
 
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
 
-      - name: Test, lint & build
-        run: ./gradlew test lint assembleDebug
+      - name: Test & lint
+        run: ./gradlew test lint --build-cache --parallel
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --build-cache
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
