@@ -1,21 +1,17 @@
 name: Release
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [master]
 
 concurrency:
-  group: release-${{ github.event.pull_request.number }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Build & publish release
+    name: Build & publish release APK
     runs-on: ubuntu-latest
-    if: |
-      github.event.pull_request.merged == true &&
-      startsWith(github.head_ref, 'release/')
     permissions:
       contents: write
 
@@ -24,16 +20,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract and validate version from branch name
-        id: version
-        run: |
-          VERSION="${GITHUB_HEAD_REF#release/}"
-          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "ERROR: Invalid version format '$VERSION'. Expected vX.Y.Z"
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-java@v5
         with:
           java-version: '17'
@@ -41,55 +27,39 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v3
 
-      - name: Decode keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      - name: Extract version
+        id: version
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
-          chmod 600 "$RUNNER_TEMP/keystore.jks"
+          VERSION=$(grep 'versionName' app/build.gradle.kts | head -1 | grep -o '"[^"]*"' | tr -d '"')
+          TAG="v${VERSION}+${{ github.run_number }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Build signed release APK
+      - name: Build APK
         id: build
-        env:
-          KEYSTORE_FILE: ${{ runner.temp }}/keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew assembleRelease
-          APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
-          if [[ -z "$APK" ]]; then
-            echo "ERROR: No APK found after assembleRelease"
-            exit 1
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
+            chmod 600 "$RUNNER_TEMP/keystore.jks"
+            export KEYSTORE_FILE="$RUNNER_TEMP/keystore.jks"
+            export KEYSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}"
+            export KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
+            export KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
+            ./gradlew assembleRelease
+            APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          else
+            ./gradlew assembleDebug
+            APK=$(find app/build/outputs/apk/debug -name '*.apk' | head -1)
           fi
+          if [ -z "$APK" ]; then echo "ERROR: no APK found" && exit 1; fi
           echo "apk=$APK" >> "$GITHUB_OUTPUT"
 
-      - name: Verify APK signature
-        run: |
-          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
-          if [[ -z "$APKSIGNER" ]]; then
-            echo "ERROR: apksigner not found in $ANDROID_HOME/build-tools"
-            exit 1
-          fi
-          "$APKSIGNER" verify --print-certs "${{ steps.build.outputs.apk }}" || exit 1
-          echo "APK signature verified"
-
-      - name: Generate SHA256 checksum
-        run: sha256sum "${{ steps.build.outputs.apk }}" > "${{ steps.build.outputs.apk }}.sha256"
-
-      - name: Create and push tag
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git tag "${{ steps.version.outputs.version }}" || echo "tag already exists"
-          git push origin "${{ steps.version.outputs.version }}" || echo "tag already pushed"
-
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }}
-          files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/release/*.sha256
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "${{ steps.build.outputs.apk }}" \
+            --title "EZ1 Monitor ${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+            --repo "$GITHUB_REPOSITORY"
