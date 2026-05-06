@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.apsystems.ez1monitor"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.apsystems.ez1monitor"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
