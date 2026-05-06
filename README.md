@@ -1,6 +1,7 @@
 # APsystems EZ1 Android Monitor
 
 [![Build & Test](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/build.yml/badge.svg)](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/build.yml)
+[![Release Please](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/release-please.yml/badge.svg)](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/release-please.yml)
 
 Android app for monitoring APsystems EZ1 microinverters on your local network. Requires no cloud — communicates directly over LAN.
 
@@ -10,6 +11,7 @@ Android app for monitoring APsystems EZ1 microinverters on your local network. R
 - Daily/total energy production
 - Inverter status and alerts
 - Local network communication (no cloud required)
+- Home screen widget
 
 ## Requirements
 
@@ -18,51 +20,53 @@ Android app for monitoring APsystems EZ1 microinverters on your local network. R
 
 ## Building
 
+<!-- AUTO-GENERATED from app/build.gradle.kts + .github/workflows -->
 ```bash
-./gradlew assembleDebug          # debug APK
-./gradlew test                   # unit tests
-./gradlew lint                   # static analysis
-./gradlew assembleRelease        # signed release APK (requires signing env vars)
+./gradlew test lint assembleDebug   # test + lint + debug APK (CI path)
+./gradlew assembleDebug             # debug APK only
+./gradlew assembleRelease           # signed release APK (requires signing env vars)
+./gradlew test                      # unit tests only
+./gradlew lint                      # static analysis only
 ```
+<!-- /AUTO-GENERATED -->
 
 ## Releases
 
-Download signed APKs from [GitHub Releases](https://github.com/Paaaddy/apsystems-ez1-android/releases).
+Download APKs from [GitHub Releases](https://github.com/Paaaddy/apsystems-ez1-android/releases).
 
-Each release includes:
-- Signed APK (`app-release.apk`)
-- SHA256 checksum (`app-release.apk.sha256`)
+Each release includes a signed APK named `ez1-monitor-ez1-monitor-vX.Y.Z.apk`.
 
-Verify the checksum before installing:
-```bash
-sha256sum -c app-release.apk.sha256
-```
+If signing secrets are not configured, the CI falls back to a debug-signed APK.
 
 ## Contributing
 
 ### Making a release
 
-1. Create a branch named `release/vX.Y.Z` (e.g. `release/v1.0.1`)
-2. Bump `versionCode` and `versionName` in `app/build.gradle.kts`
-   - `versionName`: semver string, e.g. `"1.0.1"`
-   - `versionCode`: monotonic integer, e.g. `101` for `1.0.1`
-3. Open a PR from `release/vX.Y.Z` to `master`
-4. After approval and merge, the release workflow automatically:
-   - Builds a signed APK
-   - Verifies the APK signature with `apksigner`
-   - Creates a git tag `vX.Y.Z`
-   - Publishes a GitHub Release with the APK and SHA256 checksum
+Releases are managed by [Release Please](https://github.com/googleapis/release-please).
+
+1. Merge any feature/fix PRs to `master` using [conventional commits](https://www.conventionalcommits.org/):
+   - `feat: ...` — bumps minor version
+   - `fix: ...` — bumps patch version
+   - `feat!: ...` or `BREAKING CHANGE:` footer — bumps major version
+2. Release Please automatically opens a PR titled `chore(master): release ez1-monitor X.Y.Z` that updates `CHANGELOG.md`, `version.txt`, and `versionName` in `app/build.gradle.kts`
+3. Review and merge the Release Please PR
+4. On merge, the release workflow automatically:
+   - Creates a GitHub Release with generated release notes
+   - Builds the APK
+   - Attaches `ez1-monitor-ez1-monitor-vX.Y.Z.apk` to the release
 
 ### Signing setup (one time)
 
 Generate a keystore and add the following GitHub Secrets:
 
+<!-- AUTO-GENERATED from .github/workflows/release.yml -->
 | Secret | Value |
 |--------|-------|
 | `KEYSTORE_BASE64` | `base64 -w0 ez1-release.jks` |
 | `KEYSTORE_PASSWORD` | Keystore password |
 | `KEY_ALIAS` | Key alias |
 | `KEY_PASSWORD` | Key password |
+<!-- /AUTO-GENERATED -->
 
 ```bash
 # Generate keystore
@@ -87,7 +91,7 @@ export KEY_PASSWORD=your-key-password
 ./gradlew assembleRelease
 ```
 
-Without these env vars, `assembleRelease` falls back to debug signing (for local dev only).
+Without these env vars, `assembleRelease` falls back to debug signing (local dev only).
 
 ### Repository settings (required for Dependabot auto-merge)
 
