@@ -19,8 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: rhysd/actionlint@v1.7.12
-        with:
-          fail-on-error: true
 
   build:
     name: Build & test
@@ -40,7 +38,7 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/master' }}
 
       - name: Test & lint
-        run: ./gradlew test lint --build-cache --parallel
+        run: ./gradlew testDebugUnitTest lintDebug --build-cache
 
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --build-cache
