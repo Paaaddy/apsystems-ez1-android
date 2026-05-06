@@ -2,8 +2,8 @@ package com.apsystems.ez1monitor.ui.setup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.apsystems.ez1monitor.data.prefs.AppPreferences
-import com.apsystems.ez1monitor.data.repository.EZ1Repository
+import com.apsystems.ez1monitor.data.prefs.AppPrefsSource
+import com.apsystems.ez1monitor.data.repository.EZ1DataSource
 import com.apsystems.ez1monitor.data.repository.EZ1Result
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +20,8 @@ data class SetupUiState(
 )
 
 class SetupViewModel(
-    private val prefs: AppPreferences,
-    private val repository: EZ1Repository
+    private val prefs: AppPrefsSource,
+    private val dataSource: EZ1DataSource
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SetupUiState())
@@ -77,9 +77,10 @@ class SetupViewModel(
         _state.value = current.copy(isConnecting = true, error = null)
 
         viewModelScope.launch {
-            when (val result = repository.getDeviceInfo(ip, port)) {
+            when (val result = dataSource.getDeviceInfo(ip, port)) {
                 is EZ1Result.Success -> {
                     prefs.saveConnection(ip, port)
+                    prefs.setDemoMode(false)
                     if (interval != null) prefs.savePollInterval(interval.coerceIn(5, 3600))
                     _state.value = _state.value.copy(isConnecting = false, connected = true)
                     onSuccess()
@@ -91,6 +92,14 @@ class SetupViewModel(
                     )
                 }
             }
+        }
+    }
+
+    fun enterDemoMode(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            prefs.setDemoMode(true)
+            _state.value = _state.value.copy(connected = true)
+            onSuccess()
         }
     }
 }

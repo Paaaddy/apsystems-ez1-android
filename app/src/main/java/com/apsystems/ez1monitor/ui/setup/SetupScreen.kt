@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.apsystems.ez1monitor.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,6 +126,17 @@ fun SetupScreen(
                     Text("Connecting…")
                 } else {
                     Text("Connect")
+                }
+            }
+
+            if (BuildConfig.DEBUG) {
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { viewModel.enterDemoMode(onConnected) },
+                    enabled = !state.isConnecting,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Try Demo")
                 }
             }
         }

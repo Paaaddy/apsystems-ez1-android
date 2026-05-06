@@ -32,7 +32,7 @@ sealed class EZ1Result<out T> {
  * Retrofit is rebuilt whenever the IP/port changes, since base URL is
  * determined at runtime from user configuration.
  */
-class EZ1Repository {
+class EZ1Repository : EZ1DataSource {
 
     private val mutex = Mutex()
     private var currentBaseUrl: String = ""
@@ -69,7 +69,7 @@ class EZ1Repository {
         return apiService!!
     }
 
-    suspend fun getDeviceInfo(ip: String, port: Int): EZ1Result<DeviceInfo> = mutex.withLock {
+    override suspend fun getDeviceInfo(ip: String, port: Int): EZ1Result<DeviceInfo> = mutex.withLock {
         runCatching {
             val service = getOrBuildService(ip, port)
             val response = service.getDeviceInfo()
@@ -97,7 +97,7 @@ class EZ1Repository {
         }
     }
 
-    suspend fun getOutputData(ip: String, port: Int): EZ1Result<OutputData> = mutex.withLock {
+    override suspend fun getOutputData(ip: String, port: Int): EZ1Result<OutputData> = mutex.withLock {
         runCatching {
             val data = getOrBuildService(ip, port).getOutputData().data
                 ?: return@withLock EZ1Result.Failure("No output data in response")
@@ -117,7 +117,7 @@ class EZ1Repository {
         }
     }
 
-    suspend fun getOnOff(ip: String, port: Int): EZ1Result<Boolean> = mutex.withLock {
+    override suspend fun getOnOff(ip: String, port: Int): EZ1Result<Boolean> = mutex.withLock {
         runCatching {
             val data = getOrBuildService(ip, port).getOnOff().data
                 ?: return@withLock EZ1Result.Failure("No on/off data in response")
@@ -129,7 +129,7 @@ class EZ1Repository {
         }
     }
 
-    suspend fun setOnOff(ip: String, port: Int, on: Boolean): EZ1Result<Boolean> = mutex.withLock {
+    override suspend fun setOnOff(ip: String, port: Int, on: Boolean): EZ1Result<Boolean> = mutex.withLock {
         runCatching {
             // on=true → status=0 (EZ1 convention: 0=on, 1=off)
             val statusParam = on.toStatusParam()
@@ -144,7 +144,7 @@ class EZ1Repository {
         }
     }
 
-    suspend fun getMaxPower(ip: String, port: Int): EZ1Result<Int> = mutex.withLock {
+    override suspend fun getMaxPower(ip: String, port: Int): EZ1Result<Int> = mutex.withLock {
         runCatching {
             val data = getOrBuildService(ip, port).getMaxPower().data
                 ?: return@withLock EZ1Result.Failure("No max power data")
@@ -155,7 +155,7 @@ class EZ1Repository {
         }
     }
 
-    suspend fun setMaxPower(ip: String, port: Int, watts: Int, min: Int, max: Int): EZ1Result<Int> = mutex.withLock {
+    override suspend fun setMaxPower(ip: String, port: Int, watts: Int, min: Int, max: Int): EZ1Result<Int> = mutex.withLock {
         val clamped = watts.coerceIn(min, max)
         runCatching {
             val data = getOrBuildService(ip, port).setMaxPower(clamped).data
@@ -167,7 +167,7 @@ class EZ1Repository {
         }
     }
 
-    suspend fun getAlarm(ip: String, port: Int): EZ1Result<AlarmInfo> = mutex.withLock {
+    override suspend fun getAlarm(ip: String, port: Int): EZ1Result<AlarmInfo> = mutex.withLock {
         runCatching {
             val data = getOrBuildService(ip, port).getAlarm().data
                 ?: return@withLock EZ1Result.Failure("No alarm data")

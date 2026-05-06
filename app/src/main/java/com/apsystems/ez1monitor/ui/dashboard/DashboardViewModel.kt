@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.apsystems.ez1monitor.data.api.models.AlarmInfo
 import com.apsystems.ez1monitor.data.api.models.DeviceInfo
 import com.apsystems.ez1monitor.data.api.models.OutputData
-import com.apsystems.ez1monitor.data.prefs.AppPreferences
-import com.apsystems.ez1monitor.data.repository.EZ1Repository
+import com.apsystems.ez1monitor.data.prefs.AppPrefsSource
+import com.apsystems.ez1monitor.data.repository.EZ1DataSource
 import com.apsystems.ez1monitor.data.repository.EZ1Result
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,9 +20,10 @@ import timber.log.Timber
 data class DashboardUiState(
     val isLoading: Boolean = true,
     val isConnected: Boolean = false,
+    val isDemoMode: Boolean = false,
     val deviceInfo: DeviceInfo? = null,
     val outputData: OutputData? = null,
-    val isOn: Boolean? = null,           // null = unknown until first poll
+    val isOn: Boolean? = null,
     val currentMaxPower: Int = 0,
     val pendingMaxPower: Int = 0,
     val alarms: AlarmInfo? = null,
@@ -33,8 +34,8 @@ data class DashboardUiState(
 )
 
 class DashboardViewModel(
-    private val prefs: AppPreferences,
-    private val repository: EZ1Repository
+    private val prefs: AppPrefsSource,
+    private val dataSource: EZ1DataSource
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardUiState())
@@ -49,17 +50,20 @@ class DashboardViewModel(
 
     fun startPolling() {
         pollJob?.cancel()
+        consecutiveFailures = 0
         pollJob = viewModelScope.launch {
+            val isDemo = prefs.isDemoMode.first()
             val ip = prefs.ipAddress.first()
             val port = prefs.port.first()
             val intervalSecs = prefs.pollIntervalSecs.first()
 
-            if (ip.isBlank()) {
+            _state.value = _state.value.copy(isDemoMode = isDemo)
+
+            if (!isDemo && ip.isBlank()) {
                 _state.value = _state.value.copy(isLoading = false, error = "No inverter configured")
                 return@launch
             }
 
-            // First poll immediately, then schedule recurring
             poll(ip, port)
 
             while (true) {
@@ -80,7 +84,6 @@ class DashboardViewModel(
             val port = prefs.port.first()
             consecutiveFailures = 0
             poll(ip, port)
-            // Restart polling loop with reset backoff
             startPolling()
         }
     }
@@ -88,19 +91,16 @@ class DashboardViewModel(
     private suspend fun poll(ip: String, port: Int) {
         Timber.d("Polling %s:%d", ip, port)
 
-        // Fetch all data in sequence — mutex inside repository serializes these
         val deviceInfoResult = if (_state.value.deviceInfo == null) {
-            repository.getDeviceInfo(ip, port)
+            dataSource.getDeviceInfo(ip, port)
         } else null
 
-        val outputResult = repository.getOutputData(ip, port)
-        val onOffResult = repository.getOnOff(ip, port)
-        val maxPowerResult = repository.getMaxPower(ip, port)
-        val alarmResult = repository.getAlarm(ip, port)
+        val outputResult = dataSource.getOutputData(ip, port)
+        val onOffResult = dataSource.getOnOff(ip, port)
+        val maxPowerResult = dataSource.getMaxPower(ip, port)
+        val alarmResult = dataSource.getAlarm(ip, port)
 
-        val allSucceeded = outputResult is EZ1Result.Success
-
-        if (allSucceeded) {
+        if (outputResult is EZ1Result.Success) {
             consecutiveFailures = 0
             val current = _state.value
             _state.value = current.copy(
@@ -109,7 +109,7 @@ class DashboardViewModel(
                 error = null,
                 lastUpdatedMs = System.currentTimeMillis(),
                 deviceInfo = (deviceInfoResult as? EZ1Result.Success)?.value ?: current.deviceInfo,
-                outputData = (outputResult as EZ1Result.Success).value,
+                outputData = outputResult.value,
                 isOn = (onOffResult as? EZ1Result.Success)?.value ?: current.isOn,
                 currentMaxPower = (maxPowerResult as? EZ1Result.Success)?.value ?: current.currentMaxPower,
                 pendingMaxPower = if (current.pendingMaxPower == 0)
@@ -119,8 +119,7 @@ class DashboardViewModel(
             )
         } else {
             consecutiveFailures++
-            val errorMsg = (outputResult as? EZ1Result.Failure)?.message
-                ?: "Connection lost"
+            val errorMsg = (outputResult as? EZ1Result.Failure)?.message ?: "Connection lost"
             _state.value = _state.value.copy(
                 isConnected = false,
                 isLoading = false,
@@ -140,9 +139,7 @@ class DashboardViewModel(
 
             _state.value = _state.value.copy(isCommandInFlight = true)
 
-            val result = repository.setOnOff(ip, port, newState)
-
-            when (result) {
+            when (val result = dataSource.setOnOff(ip, port, newState)) {
                 is EZ1Result.Success -> {
                     _state.value = _state.value.copy(
                         isOn = result.value,
@@ -177,7 +174,7 @@ class DashboardViewModel(
 
             _state.value = _state.value.copy(isCommandInFlight = true)
 
-            val result = repository.setMaxPower(
+            val result = dataSource.setMaxPower(
                 ip, port, target,
                 min = deviceInfo.minPower,
                 max = deviceInfo.maxPower
@@ -193,7 +190,6 @@ class DashboardViewModel(
                     )
                 }
                 is EZ1Result.Failure -> {
-                    // Revert slider to last confirmed value
                     _state.value = _state.value.copy(
                         pendingMaxPower = current.currentMaxPower,
                         isCommandInFlight = false,

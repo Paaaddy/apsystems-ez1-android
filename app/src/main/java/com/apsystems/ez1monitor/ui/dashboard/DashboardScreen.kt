@@ -10,10 +10,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,10 +32,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.apsystems.ez1monitor.BuildConfig
 import com.apsystems.ez1monitor.ui.components.AlarmSection
 import com.apsystems.ez1monitor.ui.components.ConnectionIndicator
 import com.apsystems.ez1monitor.ui.components.EnergyCard
@@ -43,12 +51,13 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToDebug: (() -> Unit)? = null
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var overflowExpanded by remember { mutableStateOf(false) }
 
-    // Show snackbar messages from commands
     LaunchedEffect(state.snackbarMessage) {
         state.snackbarMessage?.let {
             snackbarHostState.showSnackbar(it)
@@ -59,7 +68,21 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("EZ1 Monitor") },
+                title = {
+                    if (state.isDemoMode) {
+                        FilterChip(
+                            selected = true,
+                            onClick = {},
+                            label = { Text("DEMO") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                            )
+                        )
+                    } else {
+                        Text("EZ1 Monitor")
+                    }
+                },
                 actions = {
                     ConnectionIndicator(isConnected = state.isConnected)
                     IconButton(onClick = viewModel::refresh) {
@@ -67,6 +90,25 @@ fun DashboardScreen(
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                    if (BuildConfig.DEBUG && onNavigateToDebug != null) {
+                        Box {
+                            IconButton(onClick = { overflowExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More")
+                            }
+                            DropdownMenu(
+                                expanded = overflowExpanded,
+                                onDismissRequest = { overflowExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Debug Logs") },
+                                    onClick = {
+                                        overflowExpanded = false
+                                        onNavigateToDebug()
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             )
@@ -101,19 +143,16 @@ fun DashboardScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
-                // Error banner — shown but doesn't hide last known data
                 if (state.error != null) {
                     ErrorBanner(message = state.error!!)
                 }
 
-                // Alarm section — shown only when faults present
                 state.alarms?.let { alarms ->
                     if (alarms.hasAlarm) {
                         AlarmSection(alarms = alarms)
                     }
                 }
 
-                // Power display with stale data timestamp
                 PowerCard(
                     outputData = state.outputData,
                     isOn = state.isOn,
@@ -122,7 +161,6 @@ fun DashboardScreen(
 
                 EnergyCard(outputData = state.outputData)
 
-                // Controls section — only shown once device info is known
                 state.deviceInfo?.let { deviceInfo ->
                     Text(
                         text = "Controls",
@@ -149,7 +187,6 @@ fun DashboardScreen(
                     )
                 }
 
-                // Device info footer
                 state.deviceInfo?.let { info ->
                     Spacer(Modifier.height(4.dp))
                     Text(
