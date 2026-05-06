@@ -25,7 +25,8 @@ jobs:
         id: build
         run: |
           TAG="${{ github.event.release.tag_name }}"
-          VERSION_NAME="${TAG#v}"
+          # Strip component prefix (e.g. "ez1-monitor-v1.2.3" or "v1.2.3") → "1.2.3"
+          VERSION_NAME="${TAG##*v}"
 
           # Validate semver format
           if ! [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -59,7 +60,7 @@ jobs:
           fi
 
           if [ -z "$APK_SRC" ]; then echo "ERROR: no APK found" && exit 1; fi
-          APK_DEST="ez1-monitor-${TAG}.apk"
+          APK_DEST="ez1-monitor-v${VERSION_NAME}.apk"
           cp "$APK_SRC" "$APK_DEST"
           echo "apk=$APK_DEST" >> "$GITHUB_OUTPUT"
 

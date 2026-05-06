@@ -69,7 +69,7 @@ Releases are managed by [Release Please](https://github.com/googleapis/release-p
 4. On merge, the release workflow automatically:
    - Creates a GitHub Release with generated release notes
    - Builds the APK
-   - Attaches `ez1-monitor-ez1-monitor-vX.Y.Z.apk` to the release
+   - Attaches `ez1-monitor-vX.Y.Z.apk` to the release
 
 ### Signing setup (one time)
 
