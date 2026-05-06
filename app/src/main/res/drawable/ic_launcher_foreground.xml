@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Sun circle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,38 a16,16 0 1,0 0.001,0 Z" />
+    <!-- Solar panel grid -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,62 h36 v16 h-36 Z" />
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M37,63 h16 v7 h-16 Z
+                          M55,63 h16 v7 h-16 Z
+                          M37,71 h16 v6 h-16 Z
+                          M55,71 h16 v6 h-16 Z" />
+    <!-- Sun rays -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M54,26 v-6 M54,58 v6
+                          M42,30 l-4,-4 M66,54 l4,4
+                          M38,42 h-6 M76,42 h6
+                          M42,54 l-4,4 M66,30 l4,-4" />
+</vector>
