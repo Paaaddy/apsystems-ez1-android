@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.2.0...v1.2.1) (2026-05-07)
+
+
+### Performance Improvements
+
+* **ci:** cap build at 30min, fix Release Please APK trigger ([32fe13e](https://github.com/Paaaddy/apsystems-ez1-android/commit/32fe13e6b7ed9c485a6a31a5dfab411ab5babbea))
+* **ci:** skip build for docs commits; always attach debug APK to releases ([d781a6c](https://github.com/Paaaddy/apsystems-ez1-android/commit/d781a6ccfa59f45bda90fe59539106690ae8356e))
+
 ## [1.2.0](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.1.0...v1.2.0) (2026-05-06)
 
 
