@@ -28,7 +28,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build APK
+      - name: Build APKs
         id: build
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
@@ -50,6 +50,15 @@ jobs:
           export ANDROID_VERSION_CODE=$(( MAJ * 1000000 + MIN * 1000 + PAT ))
           echo "versionName=$VERSION_NAME versionCode=$ANDROID_VERSION_CODE"
 
+          # Always build debug APK
+          ./gradlew assembleDebug --build-cache
+          DEBUG_SRC=$(find app/build/outputs/apk/debug -name '*.apk' | head -1)
+          if [ -z "$DEBUG_SRC" ]; then echo "ERROR: no debug APK found" && exit 1; fi
+          DEBUG_DEST="ez1-monitor-v${VERSION_NAME}-debug.apk"
+          cp "$DEBUG_SRC" "$DEBUG_DEST"
+          echo "debug_apk=$DEBUG_DEST" >> "$GITHUB_OUTPUT"
+
+          # Build signed release APK if keystore is configured
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/keystore.jks"
             chmod 600 "$RUNNER_TEMP/keystore.jks"
@@ -58,22 +67,21 @@ jobs:
             export KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
             export KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
             ./gradlew assembleRelease --build-cache
-            APK_SRC=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
-          else
-            echo "WARNING: KEYSTORE_BASE64 not set — building debug APK. Updates will require reinstall."
-            ./gradlew assembleDebug --build-cache
-            APK_SRC=$(find app/build/outputs/apk/debug -name '*.apk' | head -1)
+            RELEASE_SRC=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+            if [ -z "$RELEASE_SRC" ]; then echo "ERROR: no release APK found" && exit 1; fi
+            RELEASE_DEST="ez1-monitor-v${VERSION_NAME}.apk"
+            cp "$RELEASE_SRC" "$RELEASE_DEST"
+            echo "release_apk=$RELEASE_DEST" >> "$GITHUB_OUTPUT"
           fi
 
-          if [ -z "$APK_SRC" ]; then echo "ERROR: no APK found" && exit 1; fi
-          APK_DEST="ez1-monitor-v${VERSION_NAME}.apk"
-          cp "$APK_SRC" "$APK_DEST"
-          echo "apk=$APK_DEST" >> "$GITHUB_OUTPUT"
-
-      - name: Upload APK to release
+      - name: Upload APKs to release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ github.event.inputs.tag || github.ref_name }}" \
-            "${{ steps.build.outputs.apk }}" \
-            --repo "$GITHUB_REPOSITORY"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          gh release upload "$TAG" "${{ steps.build.outputs.debug_apk }}" \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          if [ -n "${{ steps.build.outputs.release_apk }}" ]; then
+            gh release upload "$TAG" "${{ steps.build.outputs.release_apk }}" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          fi
