@@ -12,6 +12,8 @@ Android app for monitoring APsystems EZ1 microinverters on your local network. R
 - Inverter status and alerts
 - Local network communication (no cloud required)
 - Home screen widget
+- Demo mode (debug builds) — no inverter required
+- Debug log viewer and export via Android share sheet
 
 ## Requirements
 
@@ -22,11 +24,11 @@ Android app for monitoring APsystems EZ1 microinverters on your local network. R
 
 <!-- AUTO-GENERATED from app/build.gradle.kts + .github/workflows -->
 ```bash
-./gradlew test lint assembleDebug   # test + lint + debug APK (CI path)
-./gradlew assembleDebug             # debug APK only
-./gradlew assembleRelease           # signed release APK (requires signing env vars)
-./gradlew test                      # unit tests only
-./gradlew lint                      # static analysis only
+./gradlew testDebugUnitTest lintDebug assembleDebug   # test + lint + debug APK (CI path)
+./gradlew assembleDebug                               # debug APK only
+./gradlew assembleRelease                             # signed release APK (requires signing env vars)
+./gradlew testDebugUnitTest                           # unit tests only
+./gradlew lintDebug                                   # static analysis only
 ```
 <!-- /AUTO-GENERATED -->
 
@@ -53,6 +55,48 @@ Or import via the `obtainium.json` config file at the root of this repo.
 3. No uninstall needed (signing key is stable across releases)
 
 > **Note:** If you installed a very early release (before v1.1.0) and the update fails with a signature error, uninstall first. After that, all future updates install over the top.
+
+## Demo mode
+
+Demo mode runs the app without an inverter. It uses `DemoDataSource`, which returns simulated output data (two channels oscillating around 200W with a sine wave) and responds correctly to on/off and max-power commands.
+
+**How to activate:** Tap **Try Demo** on the setup screen (debug builds only).
+
+Demo mode is only available in debug builds. In release builds `DataSourceCreator` always creates a real `EZ1Repository`, so the "Try Demo" button has no effect.
+
+## Debug log export
+
+The app writes timestamped logs to `ez1-debug-YYYY-MM-DD.log` in the app's files directory. Log behaviour:
+
+- One file per calendar day (UTC)
+- Max 2 MB per file — older entries are silently dropped once the cap is reached
+- Files older than 3 days are deleted on startup
+
+To view and share logs: open the **Debug Logs** screen (accessible from the dashboard overflow menu). Tap **Share Logs** to send the current day's log via any Android share target. Tap **Clear** to delete all log files.
+
+## EZ1DataSource interface
+
+All inverter communication goes through `EZ1DataSource` (`app/src/main/java/com/apsystems/ez1monitor/data/repository/EZ1DataSource.kt`). Every method takes `(ip: String, port: Int)` and returns `EZ1Result<T>` — either `Success(value)` or `Failure(message, cause?)`.
+
+```kotlin
+interface EZ1DataSource {
+    suspend fun getDeviceInfo(ip: String, port: Int): EZ1Result<DeviceInfo>
+    suspend fun getOutputData(ip: String, port: Int): EZ1Result<OutputData>
+    suspend fun getOnOff(ip: String, port: Int): EZ1Result<Boolean>
+    suspend fun setOnOff(ip: String, port: Int, on: Boolean): EZ1Result<Boolean>
+    suspend fun getMaxPower(ip: String, port: Int): EZ1Result<Int>
+    suspend fun setMaxPower(ip: String, port: Int, watts: Int, min: Int, max: Int): EZ1Result<Int>
+    suspend fun getAlarm(ip: String, port: Int): EZ1Result<AlarmInfo>
+}
+```
+
+| Implementation | Source set | Purpose |
+|----------------|------------|---------|
+| `EZ1Repository` | `main` | Real HTTP calls to the inverter's local API |
+| `DemoDataSource` | `debug` | Simulated data, no network required |
+| `FakeEZ1DataSource` | `test` | Configurable stub for unit tests |
+
+`DataSourceCreator` (different implementations in `debug` and `release` source sets) wires the right implementation at build time.
 
 ## Contributing
 
