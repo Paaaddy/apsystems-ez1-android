@@ -8,5 +8,5 @@
   "latestVersionCode": null,
   "apkUrls": [],
   "apkNumeric": false,
-  "additionalSettings": "{\"includePrereleases\":false,\"fallbackToOlderReleases\":true,\"filterReleaseTitlesByRegEx\":\"\",\"filterReleaseNotesByRegEx\":\"\",\"verifyLatestTag\":false,\"dontSortReleasesList\":false,\"useLatestAssetUrl\":false,\"releaseTitleAsVersion\":false,\"assetRegEx\":\"ez1-monitor-v.*\\\\.apk\"}"
+  "additionalSettings": "{\"includePrereleases\":false,\"fallbackToOlderReleases\":true,\"filterReleaseTitlesByRegEx\":\"\",\"filterReleaseNotesByRegEx\":\"\",\"verifyLatestTag\":false,\"dontSortReleasesList\":false,\"useLatestAssetUrl\":false,\"releaseTitleAsVersion\":false,\"assetRegEx\":\"ez1-monitor-v[0-9]+\\\\.[0-9]+\\\\.[0-9]+\\\\.apk\"}"
 }
