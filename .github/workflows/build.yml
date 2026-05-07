@@ -23,6 +23,7 @@ jobs:
   build:
     name: Build & test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -37,11 +38,8 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/master' }}
 
-      - name: Test & lint
-        run: ./gradlew testDebugUnitTest lintDebug --build-cache
-
-      - name: Assemble debug APK
-        run: ./gradlew assembleDebug --build-cache
+      - name: Test, lint & assemble
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --build-cache
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

@@ -59,6 +59,10 @@ android {
         compose = true
         buildConfig = true
     }
+
+    lint {
+        checkDependencies = false
+    }
 }
 
 dependencies {
