@@ -18,7 +18,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
@@ -51,7 +51,7 @@ jobs:
           export ANDROID_VERSION_CODE=$(( MAJ * 1000000 + MIN * 1000 + PAT ))
           echo "versionName=$VERSION_NAME versionCode=$ANDROID_VERSION_CODE"
 
-          ./gradlew assembleDebug -x lint -x lintVitalAnalyzeDebug
+          ./gradlew assembleDebug -x lint
           DEBUG_SRC=$(find app/build/outputs/apk/debug -name '*.apk' | head -1)
           if [ -z "$DEBUG_SRC" ]; then echo "ERROR: no debug APK found" && exit 1; fi
           DEBUG_DEST="ez1-monitor-v${VERSION_NAME}-debug.apk"
@@ -65,7 +65,7 @@ jobs:
             export KEYSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}"
             export KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
             export KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
-            ./gradlew assembleRelease -x lint -x lintVitalAnalyzeRelease
+            ./gradlew assembleRelease -x lint
             RELEASE_SRC=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
             if [ -z "$RELEASE_SRC" ]; then echo "ERROR: no release APK found" && exit 1; fi
             RELEASE_DEST="ez1-monitor-v${VERSION_NAME}.apk"
