@@ -22,6 +22,6 @@ jobs:
 
       - name: Trigger release build
         if: ${{ steps.release.outputs.release_created }}
-        run: gh workflow run release.yml --field tag=${{ steps.release.outputs.tag_name }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --field tag=${{ steps.release.outputs.tag_name }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
