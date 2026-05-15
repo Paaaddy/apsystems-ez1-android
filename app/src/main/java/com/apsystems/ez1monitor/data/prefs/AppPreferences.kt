@@ -20,6 +20,7 @@ class AppPreferences(private val context: Context) : AppPrefsSource {
         private val KEY_PORT = intPreferencesKey("inverter_port")
         private val KEY_INTERVAL = intPreferencesKey("poll_interval_secs")
         private val KEY_DEMO_MODE = booleanPreferencesKey("demo_mode")
+        private val KEY_DEVICE_ID = stringPreferencesKey("device_id")
 
         const val DEFAULT_PORT = 8050
         const val DEFAULT_INTERVAL = 30
@@ -29,6 +30,7 @@ class AppPreferences(private val context: Context) : AppPrefsSource {
     override val port: Flow<Int> = context.dataStore.data.map { it[KEY_PORT] ?: DEFAULT_PORT }
     override val pollIntervalSecs: Flow<Int> = context.dataStore.data.map { it[KEY_INTERVAL] ?: DEFAULT_INTERVAL }
     override val isDemoMode: Flow<Boolean> = context.dataStore.data.map { it[KEY_DEMO_MODE] ?: false }
+    override val savedDeviceId: Flow<String> = context.dataStore.data.map { it[KEY_DEVICE_ID] ?: "" }
 
     override suspend fun saveConnection(ip: String, port: Int) {
         context.dataStore.edit { prefs ->
@@ -52,6 +54,12 @@ class AppPreferences(private val context: Context) : AppPrefsSource {
     override suspend fun setDemoMode(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[KEY_DEMO_MODE] = enabled
+        }
+    }
+
+    override suspend fun saveDeviceId(id: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_DEVICE_ID] = id
         }
     }
 }

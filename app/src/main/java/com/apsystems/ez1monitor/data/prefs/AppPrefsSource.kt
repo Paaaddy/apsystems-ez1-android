@@ -7,8 +7,10 @@ interface AppPrefsSource {
     val port: Flow<Int>
     val pollIntervalSecs: Flow<Int>
     val isDemoMode: Flow<Boolean>
+    val savedDeviceId: Flow<String>
     suspend fun saveConnection(ip: String, port: Int)
     suspend fun savePollInterval(secs: Int)
     suspend fun clearConnection()
     suspend fun setDemoMode(enabled: Boolean)
+    suspend fun saveDeviceId(id: String)
 }

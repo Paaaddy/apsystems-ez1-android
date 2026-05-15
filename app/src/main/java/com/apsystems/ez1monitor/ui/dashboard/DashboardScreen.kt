@@ -3,15 +3,20 @@ package com.apsystems.ez1monitor.ui.dashboard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -22,6 +27,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -147,6 +153,10 @@ fun DashboardScreen(
                     ErrorBanner(message = state.error!!)
                 }
 
+                if (state.deviceIdMismatch) {
+                    DeviceMismatchBanner(onTrust = viewModel::trustNewDevice)
+                }
+
                 state.alarms?.let { alarms ->
                     if (alarms.hasAlarm) {
                         AlarmSection(alarms = alarms)
@@ -156,7 +166,8 @@ fun DashboardScreen(
                 PowerCard(
                     outputData = state.outputData,
                     isOn = state.isOn,
-                    lastUpdatedText = formatLastUpdated(state.lastUpdatedMs)
+                    lastUpdatedText = formatLastUpdated(state.lastUpdatedMs),
+                    isStale = state.isDataStale
                 )
 
                 EnergyCard(outputData = state.outputData)
@@ -215,6 +226,46 @@ private fun ErrorBanner(message: String) {
             color = MaterialTheme.colorScheme.onErrorContainer,
             style = MaterialTheme.typography.bodySmall
         )
+    }
+}
+
+@Composable
+private fun DeviceMismatchBanner(onTrust: () -> Unit) {
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Device fingerprint changed",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            Text(
+                text = "The connected inverter ID differs from the saved one. Verify you're on the correct network.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = onTrust,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text("Trust this device", style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
 
