@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.2.1...v1.3.0) (2026-05-15)
+
+
+### Features
+
+* smart notifications, device fingerprint binding, stale data UX, security hardening ([#20](https://github.com/Paaaddy/apsystems-ez1-android/issues/20)) ([794af38](https://github.com/Paaaddy/apsystems-ez1-android/commit/794af38d0a735d3f042f53413dc437ddcf052c8f))
+
 ## [1.2.1](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.2.0...v1.2.1) (2026-05-07)
 
 
