@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.apsystems.ez1monitor"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.apsystems.ez1monitor"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         val vName = "1.2.1" // x-release-please-version
         versionName = vName
         // Derive from ANDROID_VERSION_CODE env (set in CI release.yml), or from versionName for local builds.
