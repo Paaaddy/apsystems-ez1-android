@@ -33,7 +33,7 @@ jobs:
   build:
     name: Build & test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -46,7 +46,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
+          cache-read-only: false
 
       - name: Test, lint & assemble
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --build-cache
