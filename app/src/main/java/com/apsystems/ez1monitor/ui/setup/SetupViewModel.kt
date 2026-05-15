@@ -80,6 +80,7 @@ class SetupViewModel(
             when (val result = dataSource.getDeviceInfo(ip, port)) {
                 is EZ1Result.Success -> {
                     prefs.saveConnection(ip, port)
+                    prefs.saveDeviceId(result.value.deviceId)
                     prefs.setDemoMode(false)
                     if (interval != null) prefs.savePollInterval(interval.coerceIn(5, 3600))
                     _state.value = _state.value.copy(isConnecting = false, connected = true)

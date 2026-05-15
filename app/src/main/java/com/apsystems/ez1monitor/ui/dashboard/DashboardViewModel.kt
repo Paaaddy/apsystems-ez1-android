@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.apsystems.ez1monitor.data.api.models.AlarmInfo
 import com.apsystems.ez1monitor.data.api.models.DeviceInfo
 import com.apsystems.ez1monitor.data.api.models.OutputData
+import com.apsystems.ez1monitor.data.notifications.NotificationHelper
 import com.apsystems.ez1monitor.data.prefs.AppPrefsSource
 import com.apsystems.ez1monitor.data.repository.EZ1DataSource
 import com.apsystems.ez1monitor.data.repository.EZ1Result
@@ -30,12 +31,19 @@ data class DashboardUiState(
     val error: String? = null,
     val lastUpdatedMs: Long = 0L,
     val isCommandInFlight: Boolean = false,
-    val snackbarMessage: String? = null
-)
+    val snackbarMessage: String? = null,
+    val deviceIdMismatch: Boolean = false
+) {
+    val isDataStale: Boolean get() = !isConnected && outputData != null && lastUpdatedMs > 0
+}
+
+private const val CONNECTION_LOST_THRESHOLD = 5
+private const val POWER_PRODUCING_THRESHOLD_W = 10f
 
 class DashboardViewModel(
     private val prefs: AppPrefsSource,
-    private val dataSource: EZ1DataSource
+    private val dataSource: EZ1DataSource,
+    private val notificationHelper: NotificationHelper? = null
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardUiState())
@@ -43,6 +51,11 @@ class DashboardViewModel(
 
     private var pollJob: Job? = null
     private var consecutiveFailures = 0
+
+    // Notification state — track transitions to avoid repeat-firing
+    private var prevHadAlarm = false
+    private var prevTotalWatts = -1f
+    private var connectionLostNotified = false
 
     init {
         startPolling()
@@ -102,20 +115,38 @@ class DashboardViewModel(
 
         if (outputResult is EZ1Result.Success) {
             consecutiveFailures = 0
+            connectionLostNotified = false
+            notificationHelper?.cancelConnectionLost()
+
             val current = _state.value
+            val newDeviceInfo = (deviceInfoResult as? EZ1Result.Success)?.value
+            val newAlarms = (alarmResult as? EZ1Result.Success)?.value
+
+            // Device fingerprint check — warn if stored ID doesn't match actual
+            val mismatch = if (newDeviceInfo != null) {
+                checkDeviceIdMismatch(newDeviceInfo.deviceId)
+            } else current.deviceIdMismatch
+
             _state.value = current.copy(
                 isLoading = false,
                 isConnected = true,
                 error = null,
                 lastUpdatedMs = System.currentTimeMillis(),
-                deviceInfo = (deviceInfoResult as? EZ1Result.Success)?.value ?: current.deviceInfo,
+                deviceInfo = newDeviceInfo ?: current.deviceInfo,
                 outputData = outputResult.value,
                 isOn = (onOffResult as? EZ1Result.Success)?.value ?: current.isOn,
                 currentMaxPower = (maxPowerResult as? EZ1Result.Success)?.value ?: current.currentMaxPower,
                 pendingMaxPower = if (current.pendingMaxPower == 0)
                     (maxPowerResult as? EZ1Result.Success)?.value ?: current.pendingMaxPower
                 else current.pendingMaxPower,
-                alarms = (alarmResult as? EZ1Result.Success)?.value ?: current.alarms
+                alarms = newAlarms ?: current.alarms,
+                deviceIdMismatch = mismatch
+            )
+
+            fireTransitionNotifications(
+                newAlarms = newAlarms ?: current.alarms,
+                newTotalWatts = outputResult.value.pTotal,
+                isInverterOn = (onOffResult as? EZ1Result.Success)?.value ?: current.isOn ?: true
             )
         } else {
             consecutiveFailures++
@@ -125,6 +156,45 @@ class DashboardViewModel(
                 isLoading = false,
                 error = errorMsg
             )
+            if (consecutiveFailures == CONNECTION_LOST_THRESHOLD && !connectionLostNotified) {
+                notificationHelper?.postConnectionLostNotification()
+                connectionLostNotified = true
+            }
+        }
+    }
+
+    private suspend fun checkDeviceIdMismatch(actualId: String): Boolean {
+        val saved = prefs.savedDeviceId.first()
+        return saved.isNotBlank() && actualId != saved
+    }
+
+    private fun fireTransitionNotifications(
+        newAlarms: AlarmInfo?,
+        newTotalWatts: Float,
+        isInverterOn: Boolean
+    ) {
+        val nowHasAlarm = newAlarms?.hasAlarm ?: false
+        if (nowHasAlarm && !prevHadAlarm) {
+            val desc = newAlarms?.describe() ?: "Unknown alarm"
+            notificationHelper?.postAlarmNotification(desc)
+        } else if (!nowHasAlarm && prevHadAlarm) {
+            notificationHelper?.cancelAlarm()
+        }
+        prevHadAlarm = nowHasAlarm
+
+        if (prevTotalWatts >= POWER_PRODUCING_THRESHOLD_W && newTotalWatts < 1f && isInverterOn) {
+            notificationHelper?.postPowerLostNotification()
+        } else if (newTotalWatts >= POWER_PRODUCING_THRESHOLD_W) {
+            notificationHelper?.cancelPowerLost()
+        }
+        prevTotalWatts = newTotalWatts
+    }
+
+    fun trustNewDevice() {
+        val deviceId = _state.value.deviceInfo?.deviceId ?: return
+        viewModelScope.launch {
+            prefs.saveDeviceId(deviceId)
+            _state.value = _state.value.copy(deviceIdMismatch = false)
         }
     }
 
@@ -209,3 +279,10 @@ class DashboardViewModel(
         pollJob?.cancel()
     }
 }
+
+private fun AlarmInfo.describe(): String = buildList {
+    if (offGrid) add("Off-grid")
+    if (shortCircuit1) add("Short circuit Ch1")
+    if (shortCircuit2) add("Short circuit Ch2")
+    if (outputFault) add("Output fault")
+}.joinToString(", ").ifEmpty { "Unknown alarm" }

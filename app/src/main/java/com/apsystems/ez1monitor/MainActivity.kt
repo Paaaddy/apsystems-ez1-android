@@ -1,10 +1,14 @@
 package com.apsystems.ez1monitor
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.collectAsState
@@ -17,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.apsystems.ez1monitor.data.notifications.NotificationHelper
 import com.apsystems.ez1monitor.data.prefs.AppPrefsSource
 import com.apsystems.ez1monitor.data.repository.EZ1DataSource
 import com.apsystems.ez1monitor.ui.dashboard.DashboardScreen
@@ -44,11 +49,12 @@ class SetupViewModelFactory(
 
 class DashboardViewModelFactory(
     private val prefs: AppPrefsSource,
-    private val dataSource: EZ1DataSource
+    private val dataSource: EZ1DataSource,
+    private val notificationHelper: NotificationHelper
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        DashboardViewModel(prefs, dataSource) as T
+        DashboardViewModel(prefs, dataSource, notificationHelper) as T
 }
 
 class DebugViewModelFactory(
@@ -64,9 +70,21 @@ class DebugViewModelFactory(
 }
 
 class MainActivity : ComponentActivity() {
+
+    private val requestNotificationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* result handled by NotificationHelper.canPost() check at post time */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
         val app = application as EZ1Application
 
         setContent {
@@ -106,7 +124,7 @@ class MainActivity : ComponentActivity() {
                         }
                         val vm: DashboardViewModel = viewModel(
                             key = "dashboard-$currentDemoMode",
-                            factory = DashboardViewModelFactory(app.prefs, dataSource)
+                            factory = DashboardViewModelFactory(app.prefs, dataSource, app.notificationHelper)
                         )
                         DashboardScreen(
                             viewModel = vm,
@@ -123,7 +141,7 @@ class MainActivity : ComponentActivity() {
                         composable(Routes.DEBUG) {
                             val vm: DebugViewModel = viewModel(
                                 factory = DebugViewModelFactory(
-                                    logDir = getExternalFilesDir("logs"),
+                                    logDir = File(filesDir, "logs"),
                                     prefs = app.prefs,
                                     appVersion = BuildConfig.VERSION_NAME,
                                     androidVersion = android.os.Build.VERSION.RELEASE,

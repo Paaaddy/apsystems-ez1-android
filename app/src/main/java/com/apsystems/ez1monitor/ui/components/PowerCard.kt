@@ -25,6 +25,7 @@ fun PowerCard(
     outputData: OutputData?,
     isOn: Boolean?,
     lastUpdatedText: String,
+    isStale: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
@@ -55,9 +56,10 @@ fun PowerCard(
 
             // Stale data indicator directly under main number
             Text(
-                text = lastUpdatedText,
+                text = if (isStale) "$lastUpdatedText · stale" else lastUpdatedText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isStale) MaterialTheme.colorScheme.tertiary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             // Inverter status near the power display — clarifies "0W off" vs "0W night"

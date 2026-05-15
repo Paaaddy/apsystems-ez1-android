@@ -8,18 +8,21 @@ class FakeAppPrefs(
     ip: String = "",
     port: Int = 8050,
     interval: Int = 30,
-    demoMode: Boolean = false
+    demoMode: Boolean = false,
+    deviceId: String = ""
 ) : AppPrefsSource {
 
     private val _ip = MutableStateFlow(ip)
     private val _port = MutableStateFlow(port)
     private val _interval = MutableStateFlow(interval)
     private val _demoMode = MutableStateFlow(demoMode)
+    private val _deviceId = MutableStateFlow(deviceId)
 
     override val ipAddress: Flow<String> = _ip
     override val port: Flow<Int> = _port
     override val pollIntervalSecs: Flow<Int> = _interval
     override val isDemoMode: Flow<Boolean> = _demoMode
+    override val savedDeviceId: Flow<String> = _deviceId
 
     override suspend fun saveConnection(ip: String, port: Int) {
         _ip.value = ip
@@ -36,5 +39,9 @@ class FakeAppPrefs(
 
     override suspend fun setDemoMode(enabled: Boolean) {
         _demoMode.value = enabled
+    }
+
+    override suspend fun saveDeviceId(id: String) {
+        _deviceId.value = id
     }
 }
