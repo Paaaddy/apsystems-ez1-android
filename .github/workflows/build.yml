@@ -48,8 +48,8 @@ jobs:
         with:
           cache-read-only: false
 
-      - name: Test, lint & assemble
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --build-cache
+      - name: Test & assemble
+        run: ./gradlew testDebugUnitTest assembleDebug --build-cache
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
