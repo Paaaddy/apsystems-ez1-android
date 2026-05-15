@@ -24,6 +24,7 @@ jobs:
   lint-workflows:
     name: Lint workflows
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
@@ -33,7 +34,7 @@ jobs:
   build:
     name: Build & test
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -46,12 +47,17 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: false
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Test & assemble
-        run: ./gradlew testDebugUnitTest assembleDebug --build-cache
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Assemble debug APK
+        if: github.event_name == 'push'
+        run: ./gradlew assembleDebug
 
       - name: Upload debug APK
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
