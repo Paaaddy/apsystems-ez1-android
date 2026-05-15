@@ -6,8 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -40,7 +40,7 @@ class DashboardViewModelTest {
         val dataSource = FakeEZ1DataSource()
         val vm = DashboardViewModel(prefs, dataSource)
 
-        advanceUntilIdle()
+        runCurrent()
 
         val state = vm.state.value
         assertNull(state.error)
@@ -53,7 +53,7 @@ class DashboardViewModelTest {
         val prefs = FakeAppPrefs(ip = "", demoMode = false)
         val vm = DashboardViewModel(prefs, FakeEZ1DataSource())
 
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("No inverter configured", vm.state.value.error)
     }
@@ -65,7 +65,7 @@ class DashboardViewModelTest {
         dataSource.defaultOutputData = EZ1Result.Failure("timeout")
         val vm = DashboardViewModel(prefs, dataSource)
 
-        advanceUntilIdle() // first poll — fails → consecutiveFailures=1
+        runCurrent() // first poll — fails → consecutiveFailures=1
         val callsAfterFirst = dataSource.outputDataCallCount
 
         // Advance 59s — no new poll expected
@@ -85,13 +85,13 @@ class DashboardViewModelTest {
         val vm = DashboardViewModel(prefs, dataSource)
 
         // First poll + 60s backoff = second poll
-        advanceUntilIdle()
+        runCurrent()
         advanceTimeBy(61_000L)
 
         val callsAfterSecond = dataSource.outputDataCallCount
 
-        // Next backoff should be 120s
-        advanceTimeBy(119_000L)
+        // Next backoff is 120s from t=60s → fires at t=180s. We're at t=61s, advance 118s to t=179s.
+        advanceTimeBy(118_000L)
         assertEquals(callsAfterSecond, dataSource.outputDataCallCount)
 
         advanceTimeBy(2_000L)
@@ -105,11 +105,11 @@ class DashboardViewModelTest {
         dataSource.defaultOutputData = EZ1Result.Failure("timeout")
         val vm = DashboardViewModel(prefs, dataSource)
 
-        advanceUntilIdle() // first poll fails
+        runCurrent() // first poll fails
 
         dataSource.defaultOutputData = EZ1Result.Success(testOutputData)
         vm.refresh()
-        advanceUntilIdle() // refresh poll succeeds
+        runCurrent() // refresh poll succeeds
 
         val callsAfterRefresh = dataSource.outputDataCallCount
 
@@ -127,10 +127,10 @@ class DashboardViewModelTest {
         val dataSource = FakeEZ1DataSource()
         val vm = DashboardViewModel(prefs, dataSource)
 
-        advanceUntilIdle() // first poll sets isOn = true
+        runCurrent() // first poll sets isOn = true
 
         vm.toggleOnOff()
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(1, dataSource.setOnOffCallCount)
         assertEquals(false, dataSource.lastSetOnOffValue)
@@ -144,12 +144,12 @@ class DashboardViewModelTest {
                 EZ1Result.Failure("Device error")
         }
         val vm = DashboardViewModel(prefs, failingDs)
-        advanceUntilIdle()
+        runCurrent()
 
         val currentBefore = vm.state.value.currentMaxPower
         vm.onPendingMaxPowerChanged(400)
         vm.confirmSetMaxPower()
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(currentBefore, vm.state.value.pendingMaxPower)
     }
