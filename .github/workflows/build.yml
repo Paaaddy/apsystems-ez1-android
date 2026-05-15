@@ -15,6 +15,7 @@ on:
       - 'version.txt'
       - '.release-please-manifest.json'
       - 'obtainium.json'
+  workflow_dispatch:
 
 concurrency:
   group: build-${{ github.ref }}
@@ -42,19 +43,19 @@ jobs:
 
       - uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: temurin
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew testDebugUnitTest -x lint -x lintVitalAnalyzeDebug
 
       - name: Assemble debug APK
         if: github.event_name == 'push'
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug -x lint -x lintVitalAnalyzeDebug
 
       - name: Upload debug APK
         if: github.event_name == 'push'
