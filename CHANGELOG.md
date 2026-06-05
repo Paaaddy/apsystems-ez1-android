@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.3.0...v1.3.1) (2026-06-05)
+
+
+### Bug Fixes
+
+* bump gradle dependencies to latest ([fe79f6a](https://github.com/Paaaddy/apsystems-ez1-android/commit/fe79f6a392eef7616f5481478ba4c0c15457d649))
+
 ## [1.3.0](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.2.1...v1.3.0) (2026-05-15)
 
 
