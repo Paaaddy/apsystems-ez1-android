@@ -1,9 +1,28 @@
 version: 2
 updates:
+  # Major/minor gradle bumps → fix(deps): → triggers release-please patch release
   - package-ecosystem: gradle
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "fix"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+    labels:
+      - dependencies
+
+  # Patch gradle bumps → build(deps): → no release
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "build"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     labels:
       - dependencies
 
