@@ -1,17 +1,18 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.apsystems.ez1monitor"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.apsystems.ez1monitor"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         val vName = "1.3.1" // x-release-please-version
         versionName = vName
         // Derive from ANDROID_VERSION_CODE env (set in CI release.yml), or from versionName for local builds.
@@ -51,10 +52,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -62,6 +59,12 @@ android {
 
     lint {
         checkDependencies = false
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
     }
 }
 
