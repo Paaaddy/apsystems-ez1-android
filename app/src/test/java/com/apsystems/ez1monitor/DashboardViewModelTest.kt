@@ -34,12 +34,7 @@ class DashboardViewModelTest {
 
     @After
     fun tearDown() {
-        // DashboardViewModel starts an infinite polling loop (viewModelScope.launch { while
-        // (true) { delay(...); poll() } }) in init. Left running, runTest's end-of-test
-        // advanceUntilIdle() spins forever trying to drain a scheduler that always has more
-        // (delayed) work queued. Cancel it explicitly so each test actually terminates.
-        createdViewModels.forEach { it.onCleared() }
-        createdViewModels.clear()
+        cancelAllViewModels()
         Dispatchers.resetMain()
     }
 
@@ -47,6 +42,17 @@ class DashboardViewModelTest {
         prefs: AppPrefsSource,
         dataSource: EZ1DataSource
     ): DashboardViewModel = DashboardViewModel(prefs, dataSource).also { createdViewModels.add(it) }
+
+    // DashboardViewModel starts an infinite polling loop (viewModelScope.launch { while (true)
+    // { delay(...); poll() } }) in init. runTest's *internal* end-of-test-body advanceUntilIdle
+    // runs before the test lambda returns — i.e. before @After — and spins forever trying to
+    // drain a scheduler that always has more (delayed) work queued if that job is still alive.
+    // So every test must cancel it itself, as the last thing it does; tearDown() is only a
+    // backstop for the (rarer) case where the test throws before reaching its last line.
+    private fun cancelAllViewModels() {
+        createdViewModels.forEach { it.onCleared() }
+        createdViewModels.clear()
+    }
 
     @Test
     fun `startPolling in demo mode with blank IP shows data, not error`() = runTest {
@@ -60,6 +66,7 @@ class DashboardViewModelTest {
         assertNull(state.error)
         assertNotNull(state.outputData)
         assertTrue(state.isDemoMode)
+        cancelAllViewModels()
     }
 
     @Test
@@ -70,6 +77,7 @@ class DashboardViewModelTest {
         runCurrent()
 
         assertEquals("No inverter configured", vm.state.value.error)
+        cancelAllViewModels()
     }
 
     @Test
@@ -89,6 +97,7 @@ class DashboardViewModelTest {
         // Advance 1 more second → 60s elapsed — second poll fires
         advanceTimeBy(1_001L)
         assertTrue(dataSource.outputDataCallCount > callsAfterFirst)
+        cancelAllViewModels()
     }
 
     @Test
@@ -110,6 +119,7 @@ class DashboardViewModelTest {
 
         advanceTimeBy(2_000L)
         assertTrue(dataSource.outputDataCallCount > callsAfterSecond)
+        cancelAllViewModels()
     }
 
     @Test
@@ -133,6 +143,7 @@ class DashboardViewModelTest {
 
         advanceTimeBy(2_000L)
         assertTrue(dataSource.outputDataCallCount > callsAfterRefresh)
+        cancelAllViewModels()
     }
 
     @Test
@@ -148,6 +159,7 @@ class DashboardViewModelTest {
 
         assertEquals(1, dataSource.setOnOffCallCount)
         assertEquals(false, dataSource.lastSetOnOffValue)
+        cancelAllViewModels()
     }
 
     @Test
@@ -166,5 +178,6 @@ class DashboardViewModelTest {
         runCurrent()
 
         assertEquals(currentBefore, vm.state.value.pendingMaxPower)
+        cancelAllViewModels()
     }
 }
