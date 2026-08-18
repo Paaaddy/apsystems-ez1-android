@@ -1,5 +1,7 @@
 # APsystems EZ1 Android Monitor
 
+> **Archived:** This repository is archived and read-only. No further commits, issues, or pull requests will be accepted. The last published release remains available under [Releases](https://github.com/Paaaddy/apsystems-ez1-android/releases) and can still be installed manually or via Obtainium, but it will no longer receive updates.
+
 [![Build & Test](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/build.yml/badge.svg)](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/build.yml)
 [![Release Please](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/release-please.yml/badge.svg)](https://github.com/Paaaddy/apsystems-ez1-android/actions/workflows/release-please.yml)
 
