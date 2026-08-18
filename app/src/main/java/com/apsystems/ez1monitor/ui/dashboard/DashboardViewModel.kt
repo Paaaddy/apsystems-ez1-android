@@ -270,7 +270,7 @@ class DashboardViewModel(
         _state.value = _state.value.copy(snackbarMessage = null)
     }
 
-    override fun onCleared() {
+    public override fun onCleared() {
         super.onCleared()
         pollJob?.cancel()
     }
