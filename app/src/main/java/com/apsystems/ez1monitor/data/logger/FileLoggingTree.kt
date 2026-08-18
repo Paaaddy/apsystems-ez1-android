@@ -11,7 +11,7 @@ class FileLoggingTree(private val logDirProvider: () -> File?) : Timber.Tree() {
 
     private val lock = Any()
 
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+    public override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
         val dir = logDirProvider() ?: return
         synchronized(lock) {
             try {
