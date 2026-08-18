@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.apsystems.ez1monitor.data.prefs.AppPrefsSource
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,8 @@ class DebugViewModel(
     private val prefs: AppPrefsSource,
     val appVersion: String,
     val androidVersion: String,
-    private val createShareUri: ((File) -> Uri?)? = null
+    private val createShareUri: ((File) -> Uri?)? = null,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DebugUiState())
@@ -40,7 +42,7 @@ class DebugViewModel(
 
     fun loadLogs() {
         _state.value = _state.value.copy(isLoading = true, error = null)
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             try {
                 val file = currentLogFile()
                 if (file == null || !file.exists()) {
@@ -57,7 +59,7 @@ class DebugViewModel(
     }
 
     fun clearLogs() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             try {
                 currentLogFile()?.delete()
                 _state.value = DebugUiState(isLoading = false, logLines = emptyList())

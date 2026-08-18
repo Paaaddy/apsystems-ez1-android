@@ -92,13 +92,9 @@ class DashboardViewModel(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            val ip = prefs.ipAddress.first()
-            val port = prefs.port.first()
-            consecutiveFailures = 0
-            poll(ip, port)
-            startPolling()
-        }
+        // startPolling() already resets consecutiveFailures and does an immediate poll
+        // before entering its backoff loop — polling here too would double-fire it.
+        startPolling()
     }
 
     private suspend fun poll(ip: String, port: Int) {
@@ -274,7 +270,7 @@ class DashboardViewModel(
         _state.value = _state.value.copy(snackbarMessage = null)
     }
 
-    override fun onCleared() {
+    public override fun onCleared() {
         super.onCleared()
         pollJob?.cancel()
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.3.1...v1.3.2) (2026-08-02)
+
+
+### Bug Fixes
+
+* migrate deprecated kotlinOptions to compilerOptions DSL ([2b8a3bb](https://github.com/Paaaddy/apsystems-ez1-android/commit/2b8a3bb17aa4600f3beac8340bf9c863d53f78b9))
+
 ## [1.3.1](https://github.com/Paaaddy/apsystems-ez1-android/compare/v1.3.0...v1.3.1) (2026-06-05)
 
 

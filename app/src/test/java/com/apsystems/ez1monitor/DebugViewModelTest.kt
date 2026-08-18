@@ -49,7 +49,11 @@ class DebugViewModelTest {
             prefs = prefs,
             appVersion = "1.0.0",
             androidVersion = "12",
-            createShareUri = null
+            createShareUri = null,
+            // DebugViewModel does its file I/O on Dispatchers.IO by default — a real dispatcher
+            // advanceUntilIdle() can't control. Route it through the same test dispatcher so the
+            // scheduler actually knows about (and can wait for) that work.
+            ioDispatcher = dispatcher
         )
 
     @Test
