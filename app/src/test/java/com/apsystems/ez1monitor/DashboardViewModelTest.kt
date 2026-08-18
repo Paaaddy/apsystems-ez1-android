@@ -1,5 +1,7 @@
 package com.apsystems.ez1monitor
 
+import com.apsystems.ez1monitor.data.prefs.AppPrefsSource
+import com.apsystems.ez1monitor.data.repository.EZ1DataSource
 import com.apsystems.ez1monitor.data.repository.EZ1Result
 import com.apsystems.ez1monitor.ui.dashboard.DashboardViewModel
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +25,7 @@ import org.junit.Test
 class DashboardViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
+    private val createdViewModels = mutableListOf<DashboardViewModel>()
 
     @Before
     fun setUp() {
@@ -31,14 +34,31 @@ class DashboardViewModelTest {
 
     @After
     fun tearDown() {
+        cancelAllViewModels()
         Dispatchers.resetMain()
+    }
+
+    private fun createVm(
+        prefs: AppPrefsSource,
+        dataSource: EZ1DataSource
+    ): DashboardViewModel = DashboardViewModel(prefs, dataSource).also { createdViewModels.add(it) }
+
+    // DashboardViewModel starts an infinite polling loop (viewModelScope.launch { while (true)
+    // { delay(...); poll() } }) in init. runTest's *internal* end-of-test-body advanceUntilIdle
+    // runs before the test lambda returns — i.e. before @After — and spins forever trying to
+    // drain a scheduler that always has more (delayed) work queued if that job is still alive.
+    // So every test must cancel it itself, as the last thing it does; tearDown() is only a
+    // backstop for the (rarer) case where the test throws before reaching its last line.
+    private fun cancelAllViewModels() {
+        createdViewModels.forEach { it.onCleared() }
+        createdViewModels.clear()
     }
 
     @Test
     fun `startPolling in demo mode with blank IP shows data, not error`() = runTest {
         val prefs = FakeAppPrefs(ip = "", demoMode = true)
         val dataSource = FakeEZ1DataSource()
-        val vm = DashboardViewModel(prefs, dataSource)
+        val vm = createVm(prefs, dataSource)
 
         runCurrent()
 
@@ -46,16 +66,18 @@ class DashboardViewModelTest {
         assertNull(state.error)
         assertNotNull(state.outputData)
         assertTrue(state.isDemoMode)
+        cancelAllViewModels()
     }
 
     @Test
     fun `blank IP without demo mode shows error`() = runTest {
         val prefs = FakeAppPrefs(ip = "", demoMode = false)
-        val vm = DashboardViewModel(prefs, FakeEZ1DataSource())
+        val vm = createVm(prefs, FakeEZ1DataSource())
 
         runCurrent()
 
         assertEquals("No inverter configured", vm.state.value.error)
+        cancelAllViewModels()
     }
 
     @Test
@@ -63,7 +85,7 @@ class DashboardViewModelTest {
         val prefs = FakeAppPrefs(ip = "10.0.0.1", interval = 30)
         val dataSource = FakeEZ1DataSource()
         dataSource.defaultOutputData = EZ1Result.Failure("timeout")
-        val vm = DashboardViewModel(prefs, dataSource)
+        val vm = createVm(prefs, dataSource)
 
         runCurrent() // first poll — fails → consecutiveFailures=1
         val callsAfterFirst = dataSource.outputDataCallCount
@@ -75,6 +97,7 @@ class DashboardViewModelTest {
         // Advance 1 more second → 60s elapsed — second poll fires
         advanceTimeBy(1_001L)
         assertTrue(dataSource.outputDataCallCount > callsAfterFirst)
+        cancelAllViewModels()
     }
 
     @Test
@@ -82,7 +105,7 @@ class DashboardViewModelTest {
         val prefs = FakeAppPrefs(ip = "10.0.0.1", interval = 30)
         val dataSource = FakeEZ1DataSource()
         dataSource.defaultOutputData = EZ1Result.Failure("timeout")
-        val vm = DashboardViewModel(prefs, dataSource)
+        val vm = createVm(prefs, dataSource)
 
         // First poll + 60s backoff = second poll
         runCurrent()
@@ -96,6 +119,7 @@ class DashboardViewModelTest {
 
         advanceTimeBy(2_000L)
         assertTrue(dataSource.outputDataCallCount > callsAfterSecond)
+        cancelAllViewModels()
     }
 
     @Test
@@ -103,7 +127,7 @@ class DashboardViewModelTest {
         val prefs = FakeAppPrefs(ip = "10.0.0.1", interval = 30)
         val dataSource = FakeEZ1DataSource()
         dataSource.defaultOutputData = EZ1Result.Failure("timeout")
-        val vm = DashboardViewModel(prefs, dataSource)
+        val vm = createVm(prefs, dataSource)
 
         runCurrent() // first poll fails
 
@@ -119,13 +143,14 @@ class DashboardViewModelTest {
 
         advanceTimeBy(2_000L)
         assertTrue(dataSource.outputDataCallCount > callsAfterRefresh)
+        cancelAllViewModels()
     }
 
     @Test
     fun `toggleOnOff sends setOnOff with correct value`() = runTest {
         val prefs = FakeAppPrefs(ip = "10.0.0.1")
         val dataSource = FakeEZ1DataSource()
-        val vm = DashboardViewModel(prefs, dataSource)
+        val vm = createVm(prefs, dataSource)
 
         runCurrent() // first poll sets isOn = true
 
@@ -134,6 +159,7 @@ class DashboardViewModelTest {
 
         assertEquals(1, dataSource.setOnOffCallCount)
         assertEquals(false, dataSource.lastSetOnOffValue)
+        cancelAllViewModels()
     }
 
     @Test
@@ -143,7 +169,7 @@ class DashboardViewModelTest {
             override suspend fun setMaxPower(ip: String, port: Int, watts: Int, min: Int, max: Int): EZ1Result<Int> =
                 EZ1Result.Failure("Device error")
         }
-        val vm = DashboardViewModel(prefs, failingDs)
+        val vm = createVm(prefs, failingDs)
         runCurrent()
 
         val currentBefore = vm.state.value.currentMaxPower
@@ -152,5 +178,6 @@ class DashboardViewModelTest {
         runCurrent()
 
         assertEquals(currentBefore, vm.state.value.pendingMaxPower)
+        cancelAllViewModels()
     }
 }

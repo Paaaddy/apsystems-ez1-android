@@ -2,19 +2,18 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.apsystems.ez1monitor"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.apsystems.ez1monitor"
         minSdk = 26
-        targetSdk = 36
-        val vName = "1.3.1" // x-release-please-version
+        targetSdk = 37
+        val vName = "1.3.2" // x-release-please-version
         versionName = vName
         // Derive from ANDROID_VERSION_CODE env (set in CI release.yml), or from versionName for local builds.
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull()
@@ -103,4 +102,12 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("started", "passed", "failed", "skipped")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
